@@ -1,0 +1,11 @@
+<!-- Launches: mavros -->
+
+<launch>
+	<arg name="drone_id_namespace"     default="drone0" />
+	<arg name="fcu_url" default="/dev/ttyACM0:57600" />
+	<group ns="$(arg drone_id_namespace)">
+		<include file="$(find mavros)/launch/px4.launch" >
+		<arg name="fcu_url" value="$(arg fcu_url)" />
+		</include>
+	</group>
+</launch>

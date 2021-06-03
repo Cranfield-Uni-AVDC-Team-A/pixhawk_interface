@@ -14,8 +14,8 @@
 
 #define DEBUG 1
 #define GRAVITY_CONSTANT 9.81f
-#define MAX_THROTTLE 1.0f
-#define TAKEOFF_THROTTLE 0.6f
+#define MAX_THROTTLE 0.5f
+#define TAKEOFF_THROTTLE 0.4f
 
 
 class Thrust2throttleController {
@@ -48,16 +48,31 @@ private:
     aerostack_msgs::FlightState flight_state_msg_;
 
     void flightStateCallback(const aerostack_msgs::FlightState& _msg){
+        static bool already_flying = false;
         flight_state_msg_ = _msg;
         // std::cout << "state = " << flight_state_msg_.state<< std::endl;
+        
+        if (!already_flying){
+            if (flight_state_msg_.state == aerostack_msgs::FlightState::TAKING_OFF ||
+                flight_state_msg_.state == aerostack_msgs::FlightState::FLYING 
+            ){
+                already_flying = true;
+                std::cout << "FLIGHT BEGGINS"<<std::endl;
+            }
+            else{
+                maximun_throttle = 0.01f;
+            }
 
-        if (flight_state_msg_.state == aerostack_msgs::FlightState::FLYING   ||
-            flight_state_msg_.state == aerostack_msgs::FlightState::HOVERING){
-            maximun_throttle = MAX_THROTTLE;
-            
+        }else{
+
+            if (flight_state_msg_.state == aerostack_msgs::FlightState::FLYING   ||
+                flight_state_msg_.state == aerostack_msgs::FlightState::HOVERING){
+                maximun_throttle = MAX_THROTTLE;
+                
+            }
+            else
+                maximun_throttle = TAKEOFF_THROTTLE;
         }
-        else
-            maximun_throttle = TAKEOFF_THROTTLE;
             
 
 	};

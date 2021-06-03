@@ -162,7 +162,11 @@ void CommandInterface::ownStop(){
 void CommandInterface::ownRun(){
     
     // dattitude_setpoint_pub_.publish(dattitude_msg_);
+    static auto timestamp = ros::Time::now();
+    timestamp = ros::Time::now();
 
+    attitude_msg_.header.stamp = timestamp;
+    throttle_msg_.header.stamp = timestamp;
     attitude_setpoint_pub_.publish(attitude_msg_);
     
     thrust_setpoint_pub_.publish(throttle_msg_);

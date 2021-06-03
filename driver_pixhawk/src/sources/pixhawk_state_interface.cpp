@@ -32,9 +32,10 @@ void StateInterface::ownSetUp(){
 
 void StateInterface::poseCallback(const geometry_msgs::PoseStamped& msg){
    static auto time = ros::Time::now();
-   float freq = 60;
+   float freq = 30;
    if ((ros::Time::now()-time).toSec()>1/freq){
         auto msg_NED = msg;
+        msg_NED.header.stamp = ros::Time::now();
         // Convert from FLU (aerostack) to ENU (mavros)
         msg_NED.pose.position.x = - msg.pose.position.y;
         msg_NED.pose.position.y = msg.pose.position.x;
@@ -87,7 +88,6 @@ void StateInterface::ownStart(){
     estimated_pose_sub_        = nh_.subscribe("/" + n_space_ + "/" + aerostack_estimated_pose_topic_   , 10, &StateInterface::poseCallback,this);
     estimated_twist_sub_       = nh_.subscribe("/" + n_space_ + "/" + aerostack_estimated_speed_topic_  , 10, &StateInterface::twistCallback,this);
     flight_action_command_sub_ = nh_.subscribe("/" + n_space_ + "/" + aerostack_flight_action_command_topic_ , 10, &StateInterface::flightActionCommandCallback,this);
-    flightstate_sub            = nh_.subscribe("/" + n_space_ + "/" + aerostack_flight_state_topic_     , 1 , &StateInterface::statusCallBack, this);
     
     
 
@@ -112,41 +112,47 @@ void StateInterface::getFlightState(){
         
         case aerostack_msgs::FlightActionCommand::TAKE_OFF:
             if (flight_state_msg_.state == aerostack_msgs::FlightState::LANDED || flight_state_msg_.state == aerostack_msgs::FlightState::UNKNOWN){
-                flight_state_msg_.state = aerostack_msgs::FlightState::TAKING_OFF;
-            }
-            else{
-                if (flight_state_msg_.state == aerostack_msgs::FlightState::TAKING_OFF){
-                    if (pose_msg_.pose.position.z > 0.1){
-                        flight_state_msg_.state = aerostack_msgs::FlightState::FLYING;
-                    }
+                if (twist_msg_.twist.linear.z > 0){
+                    flight_state_msg_.state = aerostack_msgs::FlightState::TAKING_OFF;
+
+                    std::cout << "LANDED -> TAKING_OFF" << std::endl;
                 }
+            }else{
+                if (flight_state_msg_.state == aerostack_msgs::FlightState::TAKING_OFF){
+                    if (std::abs(twist_msg_.twist.linear.z) < 0.05 && pose_msg_.pose.position.z > 0.5){
+                        flight_state_msg_.state = aerostack_msgs::FlightState::FLYING;
+
+                        std::cout << "TAKING_OFF -> FLYING" << std::endl;
+                        
+                    }
+                }            
             }
         break;
-        case aerostack_msgs::FlightActionCommand::HOVER:{
+        case aerostack_msgs::FlightActionCommand::HOVER:
+        {
             if(pose_msg_.pose.position.z > 0.1 && std::abs(twist_msg_.twist.linear.x) < 0.05 && std::abs(twist_msg_.twist.linear.y) < 0.05 && std::abs(twist_msg_.twist.linear.z) < 0.05 &&
             std::abs(twist_msg_.twist.angular.x) < 0.05 && std::abs(twist_msg_.twist.angular.y) < 0.05 && std::abs(twist_msg_.twist.angular.z) < 0.05){
                 flight_state_msg_.state = aerostack_msgs::FlightState::HOVERING;
             }
         }
         break;
-        case aerostack_msgs::FlightActionCommand::LAND:{
-            if (flight_state_msg_.state != aerostack_msgs::FlightState::LANDED && flight_state_msg_.state != aerostack_msgs::FlightState::LANDING){
-                flight_state_msg_.state = aerostack_msgs::FlightState::LANDING;
-                landing_command_time_ = ros::Time::now();
-            }
-            else{
+        case aerostack_msgs::FlightActionCommand::LAND:
+        {
+            if (flight_state_msg_.state == aerostack_msgs::FlightState::HOVERING || flight_state_msg_.state == aerostack_msgs::FlightState::FLYING){
+                if (twist_msg_.twist.linear.z < 0){
+                    flight_state_msg_.state = aerostack_msgs::FlightState::LANDING;
+                }
+            }else{
                 if (flight_state_msg_.state == aerostack_msgs::FlightState::LANDING){
-                    if (fabs(twist_msg_.twist.linear.z) > 0.05){
-                        landing_command_time_ = ros::Time::now();
-                    }
-                    else if (((ros::Time::now()-landing_command_time_).toSec() > LANDING_CHECK_DELAY)){
+                    if (std::abs(pose_msg_.pose.position.z) < 0.1 && std::abs(twist_msg_.twist.linear.z < 0.05)){
                         flight_state_msg_.state = aerostack_msgs::FlightState::LANDED;
                     }
                 }
             }
         }
         break;
-        case aerostack_msgs::FlightActionCommand::MOVE:{
+        case aerostack_msgs::FlightActionCommand::MOVE:
+        {
             if(std::abs(pose_msg_.pose.position.z) > 0.1 && (std::abs(twist_msg_.twist.linear.x) > 0.05 || std::abs(twist_msg_.twist.linear.y) > 0.05 || std::abs(twist_msg_.twist.linear.z) > 0.05 ||
             std::abs(twist_msg_.twist.angular.x) > 0.05 || std::abs(twist_msg_.twist.angular.y) > 0.05 || std::abs(twist_msg_.twist.angular.z) > 0.05)){
                 flight_state_msg_.state = aerostack_msgs::FlightState::FLYING;
@@ -158,7 +164,8 @@ void StateInterface::getFlightState(){
         }
         break;
         case aerostack_msgs::FlightActionCommand::UNKNOWN:
-        default:{
+        default:
+        {
             if(pose_msg_.pose.position.z < 0.1 && std::abs(twist_msg_.twist.linear.x) < 0.05 && std::abs(twist_msg_.twist.linear.y) < 0.05 && std::abs(twist_msg_.twist.linear.z) < 0.05 &&
             std::abs(twist_msg_.twist.angular.x) < 0.05 && std::abs(twist_msg_.twist.angular.y) < 0.05 && std::abs(twist_msg_.twist.angular.z) < 0.05){
                 flight_state_msg_.state = aerostack_msgs::FlightState::LANDED;
@@ -257,7 +264,3 @@ void StateInterface::CallbackBatteryTopic(const sensor_msgs::BatteryState& _msg)
     battery_msg_ = _msg;
     battery_pub_.publish(battery_msg_);
 };
-
-void StateInterface::statusCallBack(const aerostack_msgs::FlightState &msg){
-  flight_state_msg_.state = msg.state;
-}

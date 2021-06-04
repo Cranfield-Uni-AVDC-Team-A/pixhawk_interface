@@ -31,6 +31,7 @@ private:
 
     std::string n_space_;
     bool simulation_mode_ = true;
+    bool acro_mode_ = false;
     
     // subscribers
     std::string aerostack_flight_action_command_topic_;

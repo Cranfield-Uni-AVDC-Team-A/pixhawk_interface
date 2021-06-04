@@ -3,6 +3,8 @@
 	
 	<arg name = "namespace"					        default = "drone1"/>
 	<arg name = "simulation_mode" 					default = "True" />
+	<arg name = "acro_mode" 					    default = "False"/>
+	
 
 	<!-- State interface  Node -->
     <arg name ="mavros_battery_topic"		        default = "mavros/battery" />
@@ -41,11 +43,23 @@
 	<arg name = "mavros_vision_pose_topic"          					default = "mavros/vision_pose/pose" />
 
 
+	<arg name = "fcu_url"    value = "/dev/ttyACM0:57600"  if="$(eval arg('simulation_mode') == False)"/> 
+	<arg name = "fcu_url"    value = "udp://:14540@192.168.1.36:14557"  if="$(eval arg('simulation_mode') == True)"/> 
+	<arg name ="config_yaml" value = "$(find pixhawk_interface)/configs/px4_attitude_config.yaml" if="$(eval arg('acro_mode') == False)"/>
+	<arg name ="config_yaml" value = "$(find pixhawk_interface)/configs/px4_acro_config.yaml" if="$(eval arg('acro_mode') == True)"/>
+
+ 
+	<include file="$(find pixhawk_interface)/launch/px4.launch">
+		<arg name = "config_yaml"  value = "$(arg config_yaml)"/>
+		<arg name = "fcu_url"  value = "$(arg fcu_url)" />
+		<arg name = "namespace"  value = "$(arg namespace)" />
+    </include>
     
 	<group ns="$(arg namespace)">
 
 		<param name = "~namespace"                        	value = "$(arg namespace)"                       	type = "str" />
 		<param name ="~simulation_mode"						value = "$(arg simulation_mode)"					type = "bool" />
+		<param name ="~acro_mode"							value = "$(arg acro_mode)"							type = "bool" />
 
 
 		<param name= "~mavros_battery_topic"		    	value = "$(arg mavros_battery_topic)" 				type="str" />

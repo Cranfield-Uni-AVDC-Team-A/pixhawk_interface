@@ -20,10 +20,9 @@
 #include "aerostack_msgs/FlightActionCommand.h"
 
 #include "ros_utils_lib/ros_utils.hpp"
-
-
-
 #include <iostream>
+
+#define LANDING_CHECK_DELAY 1
 
 class StateInterface : public RobotProcess{
 
@@ -55,6 +54,8 @@ private:
     std::string aerostack_flight_action_command_topic_;
 
     std::string mavros_vision_pose_topic_;
+
+    ros::Time landing_command_time_;
 
     // Battery
     ros::Publisher  battery_pub_;
@@ -102,7 +103,8 @@ private:
     void twistCallback(const geometry_msgs::TwistStamped& _msg){twist_msg_ = _msg;};
     geometry_msgs::TwistStamped twist_msg_;
 
-    ros::Publisher flight_state_pub_;    
+    ros::Publisher flight_state_pub_;
+    ros::Subscriber flightstate_sub;
 
 
 public:
@@ -115,5 +117,6 @@ public:
     void ownStop();
     void ownRun();
 
+    void statusCallBack(const aerostack_msgs::FlightState &msg);
 };
 

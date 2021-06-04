@@ -6,6 +6,7 @@ void CommandInterface::ownSetUp(){
     // read params from launcher
     ros_utils_lib::getPrivateParam<std::string>("~namespace" , n_space_ ,"drone1");
     ros_utils_lib::getPrivateParam<bool>("~simulation_mode" , simulation_mode_, true);
+    ros_utils_lib::getPrivateParam<bool>("~acro_mode" , acro_mode_, false);
 
     //subscribers
     ros_utils_lib::getPrivateParam<std::string>("~aerostack_flight_action_command_topic"                , aerostack_flight_action_command_topic_               , "actuator_command/flight_action");
@@ -130,8 +131,12 @@ void CommandInterface::startPixhawkInterface(){
 
     for(int i = 100; ros::ok() && i > 0; --i){
         thrust_setpoint_pub_.publish(thrust_setpoint);
-        // dattitude_setpoint_pub_.publish(dattitude);
-        attitude_setpoint_pub_.publish(attitude_msg_);
+        if (acro_mode_){
+            dattitude_setpoint_pub_.publish(dattitude);
+        }
+        else{
+            attitude_setpoint_pub_.publish(attitude_msg_);
+        }
 
         ros::spinOnce();
         rate.sleep();
@@ -141,6 +146,13 @@ void CommandInterface::startPixhawkInterface(){
         std::cout<< "PIXHAWK connected, put RC in OFFBOARDMODE" << std::endl;
     else
         std::cout<< "PIXHAWK connected, in simulation mode" << std::endl;
+
+    if (acro_mode_)
+        std::cout<< "PIXHAWK configured in ACRO mode" << std::endl;
+    else
+        std::cout<< "PIXHAWK configured in ATTITUDE mode" << std::endl;
+        
+    
 }
 
  
@@ -155,20 +167,24 @@ void CommandInterface::ownStop(){
     attitude_setpoint_pub_.shutdown();
     dattitude_setpoint_pub_.shutdown();
     thrust_setpoint_pub_.shutdown();
-
-
 }
 
 void CommandInterface::ownRun(){
-    
-    // dattitude_setpoint_pub_.publish(dattitude_msg_);
     static auto timestamp = ros::Time::now();
     timestamp = ros::Time::now();
-
-    attitude_msg_.header.stamp = timestamp;
-    throttle_msg_.header.stamp = timestamp;
-    attitude_setpoint_pub_.publish(attitude_msg_);
     
+    if (acro_mode_){
+        dattitude_msg_.header.stamp = timestamp;
+        dattitude_msg_.header.frame_id = "base_link";
+        dattitude_setpoint_pub_.publish(dattitude_msg_);
+    }
+    else{
+        attitude_msg_.header.stamp = timestamp;
+        attitude_msg_.header.frame_id = "odom";
+        attitude_setpoint_pub_.publish(attitude_msg_);
+    }
+
+    throttle_msg_.header.stamp = timestamp;
     thrust_setpoint_pub_.publish(throttle_msg_);
     
     if (simulation_mode_){
@@ -259,26 +275,12 @@ void CommandInterface::attitudeCallback(const geometry_msgs::PoseStamped &msg){
     attitude_msg_.header.stamp = ros::Time::now();
     attitude_msg_.header.frame_id = "base_link";
     
-    // tf::Quaternion q;
-    // tf::quaternionMsgToTF(msg.pose.orientation,q);
-    // tf::Matrix3x3 m(q);
-    // double roll, pitch, yaw;
-    // m.getRPY(roll,pitch,yaw);
-
-    // attitude_msg_.pose.orientation =  tf::createQuaternionMsgFromRollPitchYaw(roll,pitch,yaw);
-    
-
 }
 
 void CommandInterface::dAttitudeCallback(const geometry_msgs::TwistStamped &msg){
     dyaw = msg.twist.angular.z;
-    // dattitude_msg_ = msg;
-    // dattitude_msg_.twist.angular.z = 0;//TODO
-    // dattitude_msg_.twist.linear.z = 0;//TODO
+    dattitude_msg_ = msg;
 }
-
-
-
 
 
 void CommandInterface::flightActionCallback(const aerostack_msgs::FlightActionCommand& _msg)

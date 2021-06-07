@@ -30,6 +30,11 @@ void Thrust2throttleController::setup()
 
 	throttle_pub_ = nh.advertise<mavros_msgs::Thrust>("/" + n_space + "/" + throttle_topic,1);
 
+	#if DEBUG==1
+		debug_signals_pub_ = nh.advertise<std_msgs::Float32MultiArray>("/" + n_space + "/" + "debug/thrust2throttle/debug_signals",1);
+		debug_signals_msg_.data = std::vector<float>(3,0.0f);
+	#endif
+
 }
 
 
@@ -38,8 +43,12 @@ void Thrust2throttleController::computeThrottle(){
 	static float& throttle = throttle_msg_.thrust;
 	
 	float thrust_error = (accel_reference_- accel_measure_);
-
-	// std::cout<< "thrust_ref_ "<< accel_reference_ <<std::endl;  
+	#if DEBUG==1
+		debug_signals_msg_.data[0] = accel_reference_;
+		debug_signals_msg_.data[1] = accel_measure_;
+		debug_signals_pub_.publish(debug_signals_msg_);
+	#endif
+	// std::cout<< "accel_ref_ "<< accel_reference_ <<std::endl;  
 	// std::cout<< "accel_measure_ "<< accel_measure_ <<std::endl;  
 	// std::cout<< "thrust_error_ "<< thrust_error <<std::endl;  
 
@@ -72,13 +81,3 @@ void Thrust2throttleController::thrustCallback(const mavros_msgs::Thrust& _msg){
 	computeThrottle();
 
 }
-
-// void Thrust2throttleController::poseCallback(const geometry_msgs::PoseStamped& _msg){
-// 	tf::Quaternion q;
-// 	tf::quaternionMsgToTF(_msg.pose.orientation,q);
-// 	tf::Matrix3x3 m(q);
-//     double roll,pitch,yaw;
-//     m.getRPY(roll, pitch, yaw);
-// 	roll_ = roll;
-// 	pitch_ = pitch;
-//  }

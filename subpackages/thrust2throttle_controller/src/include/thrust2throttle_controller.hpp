@@ -14,8 +14,8 @@
 
 #define DEBUG 1
 #define GRAVITY_CONSTANT 9.81f
-#define MAX_THROTTLE 0.5f
-#define TAKEOFF_THROTTLE 0.4f
+#define MAX_THROTTLE 0.9f
+#define TAKEOFF_THROTTLE 0.6f
 
 
 class Thrust2throttleController {
@@ -40,9 +40,11 @@ private:
     void thrustCallback(const mavros_msgs::Thrust & );
     float accel_reference_;
     
-    // ros::Subscriber pose_sub_; // pose
-    // void poseCallback(const geometry_msgs::PoseStamped& );
+    #if DEBUG==1
+        ros::Publisher debug_signals_pub_; // pose
+        std_msgs::Float32MultiArray debug_signals_msg_;
     // double roll_ = 0.0f, pitch_ = 0.0f;
+    #endif
 
     ros::Subscriber flight_state_sub;
     aerostack_msgs::FlightState flight_state_msg_;

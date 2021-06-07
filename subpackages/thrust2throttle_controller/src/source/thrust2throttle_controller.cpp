@@ -46,6 +46,7 @@ void Thrust2throttleController::computeThrottle(){
 	#if DEBUG==1
 		debug_signals_msg_.data[0] = accel_reference_;
 		debug_signals_msg_.data[1] = accel_measure_;
+		debug_signals_msg_.data[2] = thrust_error;
 		debug_signals_pub_.publish(debug_signals_msg_);
 	#endif
 	// std::cout<< "accel_ref_ "<< accel_reference_ <<std::endl;  

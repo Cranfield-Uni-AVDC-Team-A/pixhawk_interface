@@ -71,7 +71,12 @@ void Thrust2throttleController::publishThrottle(){
 }
 
 void Thrust2throttleController::imuCallback(const sensor_msgs::Imu& _msg){
-	accel_measure_ = _msg.linear_acceleration.z ;
+	static float prev_measure = _msg.linear_acceleration.z;
+	const float alpha = 0.2;
+	// const float alpha = 1;
+	accel_measure_ = prev_measure*(1-alpha) + _msg.linear_acceleration.z*alpha ;
+	prev_measure = accel_measure_;
+
 	// std::cout<< "accel_measure"<< accel_measure_ <<std::endl;
 }
 

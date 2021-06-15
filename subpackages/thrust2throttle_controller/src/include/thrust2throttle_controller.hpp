@@ -14,7 +14,7 @@
 
 #define DEBUG 1
 #define GRAVITY_CONSTANT 9.81f
-#define MAX_THROTTLE 0.9f
+#define MAX_THROTTLE 0.7f
 #define TAKEOFF_THROTTLE 0.6f
 
 

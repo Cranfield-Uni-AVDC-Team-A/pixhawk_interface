@@ -14,8 +14,8 @@
 
 #define DEBUG 1
 #define GRAVITY_CONSTANT 9.81f
-#define MAX_THROTTLE 0.7f
-#define TAKEOFF_THROTTLE 0.6f
+#define MAX_THROTTLE 1.0f
+#define TAKEOFF_THROTTLE 1.0f
 
 
 class Thrust2throttleController {

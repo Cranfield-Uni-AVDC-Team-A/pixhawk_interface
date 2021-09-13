@@ -85,10 +85,11 @@ private:
     ros::ServiceClient landing_client_;
     ros::ServiceClient set_mode_client_;
     
-    ros::Publisher  flight_commands_pub_;
+    ros::Publisher flight_commands_pub_;
     ros::Publisher attitude_setpoint_pub_;
     ros::Publisher dattitude_setpoint_pub_;
     ros::Publisher thrust_setpoint_pub_;
+    ros::Publisher control_mode;
     
     
     void flightActionCallback(const aerostack_msgs::FlightActionCommand& );
